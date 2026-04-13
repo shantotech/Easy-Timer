@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#F7F5F2" id="theme-meta">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Easy Timer">
+<meta name="description" content="A simple, minimal time tracker. Tap, track, and see your day.">
+<link rel="manifest" href="manifest.json">
 <title>Easy Timer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,10 +26,30 @@
     --text-3: #A8A49D;
     --accent-soft: #E8E4DC;
     --green: #2E7D52;
+    --green-soft: #E8F5EE;
     --red: #C0392B;
     --red-soft: #FDECEA;
+    --red-border: #F5C6C2;
     --radius: 16px;
     --radius-sm: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+
+  [data-theme="dark"] {
+    --bg: #141210;
+    --surface: #1E1C19;
+    --surface2: #252320;
+    --border: #2E2C28;
+    --text: #F0EDE8;
+    --text-2: #9A9590;
+    --text-3: #5A5752;
+    --accent-soft: #2A2825;
+    --green: #4CAF7D;
+    --green-soft: #0F2A1A;
+    --red: #E07070;
+    --red-soft: #2C1A1A;
+    --red-border: #4A2828;
+    --shadow: 0 1px 4px rgba(0,0,0,0.35);
   }
 
   html, body {
@@ -31,6 +57,7 @@
     font-family: 'DM Sans', sans-serif;
     color: var(--text);
     -webkit-font-smoothing: antialiased;
+    transition: background 0.25s ease, color 0.25s ease;
   }
 
   body {
@@ -44,14 +71,62 @@
   .app { width: 100%; max-width: 400px; }
 
   /* Header */
-  .header { margin-bottom: 32px; }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+  }
   .header-title { font-size: 22px; font-weight: 500; letter-spacing: -0.5px; }
-  .header-date { font-size: 13px; color: var(--text-3); font-weight: 300; margin-top: 2px; }
+  .header-date { font-size: 13px; color: var(--text-3); font-weight: 300; margin-top: 3px; }
+
+  .theme-toggle {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--text-2);
+  }
+  .theme-toggle:hover { background: var(--accent-soft); color: var(--text); }
+  .theme-toggle svg { width: 15px; height: 15px; }
 
   /* Nav */
-  .nav { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: var(--radius); margin-bottom: 28px; }
-  .nav-btn { flex: 1; border: none; background: transparent; padding: 9px 0; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: var(--text-2); border-radius: 12px; cursor: pointer; transition: all 0.2s; }
-  .nav-btn.active { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .nav {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    padding: 4px;
+    border-radius: var(--radius);
+    margin-bottom: 28px;
+    transition: background 0.25s;
+  }
+  .nav-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 9px 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-2);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 500;
+    box-shadow: var(--shadow);
+  }
 
   .screen { display: none; }
   .screen.active { display: block; }
@@ -64,6 +139,7 @@
     padding: 40px 28px 32px;
     margin-bottom: 12px;
     text-align: center;
+    transition: background 0.25s, border-color 0.25s;
   }
   .timer-status {
     font-size: 11px;
@@ -84,23 +160,17 @@
     color: var(--text);
     line-height: 1;
     margin-bottom: 10px;
-    transition: color 0.3s;
   }
-  .timer-digits.running { color: var(--text); }
-  .timer-topic {
+  .timer-topic-display {
     font-size: 15px;
     color: var(--text-3);
     min-height: 22px;
     font-weight: 300;
-    letter-spacing: 0;
     transition: color 0.2s;
   }
-  .timer-topic.active { color: var(--text-2); }
+  .timer-topic-display.has-value { color: var(--text-2); }
 
-  /* Topic Input Area */
-  .input-area { margin-bottom: 12px; }
-
-  .topic-input-wrap { position: relative; }
+  /* Input */
   .topic-input {
     width: 100%;
     padding: 15px 18px;
@@ -112,40 +182,31 @@
     font-weight: 400;
     color: var(--text);
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.25s;
     caret-color: var(--text);
+    margin-bottom: 10px;
+    display: block;
   }
   .topic-input::placeholder { color: var(--text-3); font-weight: 300; }
-  .topic-input:focus {
-    border-color: #C8C4BC;
-    box-shadow: 0 0 0 3px rgba(26,25,22,0.05);
-  }
-  .topic-input:disabled {
-    background: var(--surface2);
-    color: var(--text-3);
-    cursor: not-allowed;
-  }
+  .topic-input:focus { border-color: var(--text-3); box-shadow: 0 0 0 3px rgba(168,164,157,0.15); }
+  .topic-input:disabled { background: var(--surface2); color: var(--text-3); cursor: not-allowed; }
 
-  /* Recent topics */
+  /* Recent chips */
   .recent-wrap {
     overflow: hidden;
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.3s ease, opacity 0.2s ease, margin 0.2s ease;
-    margin-top: 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    margin-bottom: 0;
   }
-  .recent-wrap.open {
-    max-height: 80px;
-    opacity: 1;
-    margin-top: 10px;
-  }
+  .recent-wrap.open { max-height: 100px; opacity: 1; margin-bottom: 12px; }
   .recent-label { font-size: 11px; color: var(--text-3); margin-bottom: 7px; }
   .recent-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .recent-chip {
     border: 1px solid var(--border);
     background: var(--surface);
     border-radius: 20px;
-    padding: 5px 12px;
+    padding: 5px 13px;
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     color: var(--text-2);
@@ -153,9 +214,9 @@
     transition: all 0.15s;
     white-space: nowrap;
   }
-  .recent-chip:hover { background: var(--accent-soft); color: var(--text); border-color: #C8C4BC; }
+  .recent-chip:hover { background: var(--accent-soft); color: var(--text); border-color: var(--text-3); }
 
-  /* Action Button */
+  /* Action button */
   .action-btn {
     width: 100%;
     padding: 17px;
@@ -166,17 +227,91 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    margin-bottom: 0;
   }
   .action-btn.start { background: var(--text); color: var(--bg); }
   .action-btn.start:hover { opacity: 0.88; transform: translateY(-1px); }
   .action-btn.start:active { transform: translateY(0); }
-  .action-btn.stop { background: var(--red-soft); color: var(--red); border: 1px solid #F5C6C2; }
-  .action-btn.stop:hover { background: #FADADD; }
+  .action-btn.stop { background: var(--red-soft); color: var(--red); border: 1px solid var(--red-border); }
+  .action-btn.stop:hover { opacity: 0.85; }
   .action-btn:disabled { background: var(--surface2); color: var(--text-3); cursor: not-allowed; transform: none; }
 
   /* Live dot */
-  .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; animation: blink 1.4s ease-in-out infinite; }
+  .live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 6px;
+    vertical-align: middle;
+    animation: blink 1.4s ease-in-out infinite;
+  }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ── Recent Sessions (below Start button) ── */
+  .recents-section {
+    margin-top: 28px;
+  }
+  .recents-header {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+  .recents-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .recent-session-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    transition: background 0.25s, border-color 0.25s;
+    animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .rs-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .rs-info { flex: 1; min-width: 0; }
+  .rs-topic {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rs-time { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .rs-dur {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+
+  /* Saved badge — flashes after stopping */
+  .saved-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--green);
+    background: var(--green-soft);
+    border-radius: 20px;
+    padding: 3px 10px;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    vertical-align: middle;
+  }
+  .saved-badge.show { opacity: 1; }
 
   /* Today */
   .summary-banner {
@@ -191,10 +326,17 @@
   }
   .summary-banner-label { font-size: 12px; font-weight: 300; opacity: 0.55; margin-bottom: 4px; }
   .summary-banner-value { font-family: 'DM Mono', monospace; font-size: 40px; font-weight: 400; letter-spacing: -1px; }
-  .summary-banner-right { text-align: right; }
   .summary-banner-sessions { font-size: 12px; opacity: 0.45; }
 
-  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; margin-top: 20px; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
 
   .topic-row {
     background: var(--surface);
@@ -205,19 +347,21 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 8px;
+    transition: background 0.25s, border-color 0.25s;
   }
   .topic-row-name { flex: 1; font-size: 14px; font-weight: 500; }
   .topic-row-dur { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text-2); }
 
   .session-row {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
     gap: 12px;
+    margin-bottom: 8px;
+    transition: background 0.25s, border-color 0.25s;
   }
   .session-row-info { flex: 1; }
   .session-row-topic { font-size: 13px; font-weight: 500; }
@@ -234,6 +378,7 @@
     align-items: center;
     gap: 12px;
     margin-bottom: 8px;
+    transition: background 0.25s, border-color 0.25s;
   }
   .history-day { font-size: 13px; font-weight: 500; min-width: 80px; }
   .history-day.today { color: var(--green); }
@@ -241,18 +386,26 @@
   .bar-fill { height: 100%; background: var(--text); border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
   .history-dur { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-2); min-width: 48px; text-align: right; }
 
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .empty-msg { text-align: center; padding: 36px 0; font-size: 14px; color: var(--text-3); font-weight: 300; }
-
-  /* Dot accent on topic rows */
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--border); }
 </style>
 </head>
 <body>
 <div class="app">
 
   <div class="header">
-    <div class="header-title">Easy Timer</div>
-    <div class="header-date" id="header-date"></div>
+    <div>
+      <div class="header-title">Easy Timer</div>
+      <div class="header-date" id="header-date"></div>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+      <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="display:none">
+        <circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
   </div>
 
   <nav class="nav">
@@ -267,29 +420,36 @@
     <div class="timer-card">
       <div class="timer-status" id="t-status">what are you working on?</div>
       <div class="timer-digits" id="t-digits">00:00</div>
-      <div class="timer-topic" id="t-topic"></div>
+      <div class="timer-topic-display" id="t-topic-display"></div>
     </div>
 
-    <div class="input-area">
-      <div class="topic-input-wrap">
-        <input
-          class="topic-input"
-          id="topic-input"
-          type="text"
-          placeholder="Topic / subject…"
-          oninput="onTopicInput()"
-          onkeydown="onTopicKey(event)"
-          autocomplete="off"
-          maxlength="60"
-        >
-      </div>
-      <div class="recent-wrap" id="recent-wrap">
-        <div class="recent-label">Recent</div>
-        <div class="recent-chips" id="recent-chips"></div>
-      </div>
+    <input
+      class="topic-input"
+      id="topic-input"
+      type="text"
+      placeholder="Topic / subject…"
+      oninput="onTopicInput()"
+      onkeydown="onTopicKey(event)"
+      autocomplete="off"
+      maxlength="60"
+    >
+
+    <div class="recent-wrap" id="recent-wrap">
+      <div class="recent-label">Recent</div>
+      <div class="recent-chips" id="recent-chips"></div>
     </div>
 
     <button class="action-btn start" id="main-btn" onclick="toggle()" disabled>Start</button>
+
+    <!-- Recent sessions — live feed below the button -->
+    <div class="recents-section" id="recents-section" style="display:none">
+      <div class="recents-header">
+        Today's sessions
+        <span class="saved-badge" id="saved-badge">✓ saved</span>
+      </div>
+      <div class="recents-list" id="recents-list"></div>
+    </div>
+
   </div>
 
   <!-- TODAY SCREEN -->
@@ -299,9 +459,7 @@
         <div class="summary-banner-label">Total today</div>
         <div class="summary-banner-value" id="today-total">0m</div>
       </div>
-      <div class="summary-banner-right">
-        <div class="summary-banner-sessions" id="today-count">0 sessions</div>
-      </div>
+      <div class="summary-banner-sessions" id="today-count">0 sessions</div>
     </div>
     <div class="section-label">By topic</div>
     <div id="today-topics"></div>
@@ -318,27 +476,50 @@
 </div>
 
 <script>
-  var sessions = JSON.parse(localStorage.getItem('et4_sessions') || '[]');
-  var running = false;
-  var currentTopic = '';
-  var startEpoch = null;
-  var elapsed = 0;
-  var ticker = null;
+  // ── Palette ─────────────────────────────────────────────
+  var PALETTE = ['#1A5276','#2E7D52','#7D5A0A','#C0392B','#5B3A8E','#0E6655','#784212','#1A6B8A'];
 
-  // Seed palette for topic colors — deterministic per topic name
-  var PALETTE = ['#1A5276','#2E7D52','#7D5A0A','#C0392B','#5B3A8E','#0E6655','#784212','#17202A'];
   function topicColor(topic) {
     var h = 0;
     for (var i = 0; i < topic.length; i++) h = (h * 31 + topic.charCodeAt(i)) & 0xffffffff;
     return PALETTE[Math.abs(h) % PALETTE.length];
   }
 
-  // Init
+  // ── Theme ───────────────────────────────────────────────
+  function applyTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    document.getElementById('icon-sun').style.display  = dark ? 'block' : 'none';
+    document.getElementById('icon-moon').style.display = dark ? 'none'  : 'block';
+    document.getElementById('theme-meta').setAttribute('content', dark ? '#141210' : '#F7F5F2');
+    localStorage.setItem('et_theme', dark ? 'dark' : 'light');
+  }
+
+  function toggleTheme() {
+    applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
+  }
+
+  (function initTheme() {
+    var saved = localStorage.getItem('et_theme');
+    if (saved) { applyTheme(saved === 'dark'); return; }
+    applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  })();
+
+  // ── State ───────────────────────────────────────────────
+  var sessions = JSON.parse(localStorage.getItem('et5_sessions') || '[]');
+  var running = false;
+  var currentTopic = '';
+  var startEpoch = null;
+  var elapsed = 0;
+  var ticker = null;
+
+  // ── Init ────────────────────────────────────────────────
   document.getElementById('header-date').textContent =
     new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-  showRecent();
+  renderRecentChips();
+  renderRecentSessions();
 
+  // ── Helpers ─────────────────────────────────────────────
   function pad(n) { return String(n).padStart(2, '0'); }
 
   function fmtClock(s) {
@@ -353,58 +534,84 @@
     return s + 's';
   }
 
-  function todayKey() { return new Date().toISOString().slice(0, 10); }
-  function save() { localStorage.setItem('et4_sessions', JSON.stringify(sessions)); }
+  function fmtTime(ts) {
+    return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
 
+  function todayKey() { return new Date().toISOString().slice(0, 10); }
+  function save() { localStorage.setItem('et5_sessions', JSON.stringify(sessions)); }
+
+  // ── Recent chips (topic suggestions) ───────────────────
   function getRecentTopics() {
     var seen = [], result = [];
     for (var i = sessions.length - 1; i >= 0; i--) {
       var t = sessions[i].topic;
       if (seen.indexOf(t) === -1) { seen.push(t); result.push(t); }
-      if (result.length >= 6) break;
+      if (result.length >= 5) break;
     }
     return result;
   }
 
-  function showRecent() {
+  function renderRecentChips() {
     var recent = getRecentTopics();
     var wrap = document.getElementById('recent-wrap');
     var cc = document.getElementById('recent-chips');
     cc.innerHTML = '';
-    if (recent.length === 0) { wrap.classList.remove('open'); return; }
+    if (recent.length === 0 || running) { wrap.classList.remove('open'); return; }
     recent.forEach(function(t) {
       var b = document.createElement('button');
       b.className = 'recent-chip';
       b.textContent = t;
-      b.onclick = function() { useRecent(t); };
+      b.onclick = function() { fillTopic(t); };
       cc.appendChild(b);
     });
     wrap.classList.add('open');
   }
 
-  function useRecent(topic) {
+  function fillTopic(topic) {
     document.getElementById('topic-input').value = topic;
     currentTopic = topic;
-    document.getElementById('t-topic').textContent = topic;
-    document.getElementById('t-topic').classList.add('active');
-    document.getElementById('t-status').textContent = 'ready to start';
+    updateTopicDisplay();
     document.getElementById('main-btn').disabled = false;
   }
 
-  function onTopicInput() {
-    var val = document.getElementById('topic-input').value.trim();
-    currentTopic = val;
-    var topicEl = document.getElementById('t-topic');
-    topicEl.textContent = val;
-    topicEl.classList.toggle('active', val.length > 0);
-    document.getElementById('t-status').textContent = val.length > 0 ? 'ready to start' : 'what are you working on?';
-    document.getElementById('main-btn').disabled = val.length === 0;
+  // ── Recent sessions (live feed) ─────────────────────────
+  function renderRecentSessions() {
+    var today = todayKey();
+    var todaySessions = sessions.filter(function(s) { return s.date === today; });
+    var section = document.getElementById('recents-section');
+    var list = document.getElementById('recents-list');
+
+    if (todaySessions.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+    list.innerHTML = '';
+
+    // show last 4, most recent first
+    todaySessions.slice(-4).reverse().forEach(function(s) {
+      var row = document.createElement('div');
+      row.className = 'recent-session-row';
+      row.innerHTML =
+        '<div class="rs-dot" style="background:' + topicColor(s.topic) + '"></div>' +
+        '<div class="rs-info">' +
+          '<div class="rs-topic">' + s.topic + '</div>' +
+          '<div class="rs-time">' + fmtTime(s.ts) + '</div>' +
+        '</div>' +
+        '<div class="rs-dur">' + fmtDur(s.duration) + '</div>';
+      list.appendChild(row);
+    });
   }
 
-  function onTopicKey(e) {
-    if (e.key === 'Enter' && currentTopic.length > 0 && !running) toggle();
+  function flashSaved() {
+    var badge = document.getElementById('saved-badge');
+    badge.classList.add('show');
+    setTimeout(function() { badge.classList.remove('show'); }, 2000);
   }
 
+  // ── Navigation ──────────────────────────────────────────
   function goTo(name, btn) {
     document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
     document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -414,6 +621,28 @@
     if (name === 'history') renderHistory();
   }
 
+  // ── Input ───────────────────────────────────────────────
+  function onTopicInput() {
+    currentTopic = document.getElementById('topic-input').value.trim();
+    updateTopicDisplay();
+    document.getElementById('main-btn').disabled = currentTopic.length === 0;
+  }
+
+  function onTopicKey(e) {
+    if (e.key === 'Enter' && currentTopic.length > 0 && !running) toggle();
+  }
+
+  function updateTopicDisplay() {
+    var el = document.getElementById('t-topic-display');
+    el.textContent = currentTopic;
+    el.classList.toggle('has-value', currentTopic.length > 0);
+    if (!running) {
+      document.getElementById('t-status').textContent =
+        currentTopic.length > 0 ? 'ready to start' : 'what are you working on?';
+    }
+  }
+
+  // ── Timer ───────────────────────────────────────────────
   function toggle() { running ? stop() : start(); }
 
   function start() {
@@ -421,9 +650,8 @@
     startEpoch = Date.now() - elapsed * 1000;
     ticker = setInterval(tick, 500);
 
-    var btn = document.getElementById('main-btn');
-    btn.textContent = 'Stop';
-    btn.className = 'action-btn stop';
+    document.getElementById('main-btn').textContent = 'Stop';
+    document.getElementById('main-btn').className = 'action-btn stop';
 
     var status = document.getElementById('t-status');
     status.innerHTML = '<span class="live-dot"></span>' + currentTopic;
@@ -440,27 +668,29 @@
     if (elapsed >= 5) {
       sessions.push({ topic: currentTopic, duration: elapsed, date: todayKey(), ts: Date.now() });
       save();
+      renderRecentSessions();
+      flashSaved();
     }
 
+    // reset
     elapsed = 0;
     document.getElementById('t-digits').textContent = '00:00';
     document.getElementById('t-status').classList.remove('running');
-    document.getElementById('t-status').textContent = currentTopic.length > 0 ? 'ready to start' : 'what are you working on?';
 
-    var btn = document.getElementById('main-btn');
-    btn.textContent = 'Start';
-    btn.className = 'action-btn start';
+    document.getElementById('main-btn').textContent = 'Start';
+    document.getElementById('main-btn').className = 'action-btn start';
+    document.getElementById('main-btn').disabled = true;
 
     document.getElementById('topic-input').disabled = false;
     document.getElementById('topic-input').value = '';
     document.getElementById('topic-input').focus();
+
     currentTopic = '';
-    document.getElementById('t-topic').textContent = '';
-    document.getElementById('t-topic').classList.remove('active');
-    document.getElementById('main-btn').disabled = true;
+    document.getElementById('t-topic-display').textContent = '';
+    document.getElementById('t-topic-display').classList.remove('has-value');
     document.getElementById('t-status').textContent = 'what are you working on?';
 
-    showRecent();
+    renderRecentChips();
   }
 
   function tick() {
@@ -468,6 +698,7 @@
     document.getElementById('t-digits').textContent = fmtClock(elapsed);
   }
 
+  // ── Today ───────────────────────────────────────────────
   function renderToday() {
     var today = todayKey();
     var ts = sessions.filter(function(s) { return s.date === today; });
@@ -476,9 +707,9 @@
     document.getElementById('today-total').textContent = total > 0 ? fmtDur(total) : '0m';
     document.getElementById('today-count').textContent = ts.length + ' session' + (ts.length !== 1 ? 's' : '');
 
-    // by topic
     var byTopic = {};
     ts.forEach(function(s) { byTopic[s.topic] = (byTopic[s.topic] || 0) + s.duration; });
+
     var tEl = document.getElementById('today-topics');
     tEl.innerHTML = '';
     var keys = Object.keys(byTopic).sort(function(a, b) { return byTopic[b] - byTopic[a]; });
@@ -496,22 +727,19 @@
       });
     }
 
-    // sessions
     var sEl = document.getElementById('today-sessions');
     sEl.innerHTML = '';
     if (ts.length === 0) {
       sEl.innerHTML = '<div class="empty-msg">Start a timer to see your sessions here</div>';
     } else {
       ts.slice().reverse().forEach(function(s) {
-        var t = new Date(s.ts);
-        var timeStr = t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         var row = document.createElement('div');
         row.className = 'session-row';
         row.innerHTML =
           '<div class="dot" style="background:' + topicColor(s.topic) + '"></div>' +
           '<div class="session-row-info">' +
             '<div class="session-row-topic">' + s.topic + '</div>' +
-            '<div class="session-row-time">' + timeStr + '</div>' +
+            '<div class="session-row-time">' + fmtTime(s.ts) + '</div>' +
           '</div>' +
           '<div class="session-row-dur">' + fmtDur(s.duration) + '</div>';
         sEl.appendChild(row);
@@ -519,6 +747,7 @@
     }
   }
 
+  // ── History ─────────────────────────────────────────────
   function renderHistory() {
     var days = [];
     for (var i = 6; i >= 0; i--) {
@@ -547,6 +776,11 @@
         '<div class="history-dur">' + (dur > 0 ? fmtDur(dur) : '—') + '</div>';
       hEl.appendChild(row);
     });
+  }
+
+  // ── Service Worker ──────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
   }
 </script>
 </body>
