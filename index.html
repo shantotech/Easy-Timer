@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F5F2;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE8;
+    --border: #E4E0D8;
+    --text: #1A1916;
+    --text-2: #6B6760;
+    --text-3: #A8A49D;
+    --accent-soft: #E8E4DC;
+    --green: #2E7D52;
+    --red: #C0392B;
+    --red-soft: #FDECEA;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  html, body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 16px 80px;
+    min-height: 100vh;
+  }
+
+  .app { width: 100%; max-width: 400px; }
+
+  /* Header */
+  .header { margin-bottom: 32px; }
+  .header-title { font-size: 22px; font-weight: 500; letter-spacing: -0.5px; }
+  .header-date { font-size: 13px; color: var(--text-3); font-weight: 300; margin-top: 2px; }
+
+  /* Nav */
+  .nav { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: var(--radius); margin-bottom: 28px; }
+  .nav-btn { flex: 1; border: none; background: transparent; padding: 9px 0; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: var(--text-2); border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+  .nav-btn.active { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Timer Card */
+  .timer-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 40px 28px 32px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .timer-status {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 14px;
+    min-height: 16px;
+    transition: color 0.3s;
+  }
+  .timer-status.running { color: var(--green); }
+  .timer-digits {
+    font-family: 'DM Mono', monospace;
+    font-size: 72px;
+    font-weight: 400;
+    letter-spacing: -2px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 10px;
+    transition: color 0.3s;
+  }
+  .timer-digits.running { color: var(--text); }
+  .timer-topic {
+    font-size: 15px;
+    color: var(--text-3);
+    min-height: 22px;
+    font-weight: 300;
+    letter-spacing: 0;
+    transition: color 0.2s;
+  }
+  .timer-topic.active { color: var(--text-2); }
+
+  /* Topic Input Area */
+  .input-area { margin-bottom: 12px; }
+
+  .topic-input-wrap { position: relative; }
+  .topic-input {
+    width: 100%;
+    padding: 15px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    caret-color: var(--text);
+  }
+  .topic-input::placeholder { color: var(--text-3); font-weight: 300; }
+  .topic-input:focus {
+    border-color: #C8C4BC;
+    box-shadow: 0 0 0 3px rgba(26,25,22,0.05);
+  }
+  .topic-input:disabled {
+    background: var(--surface2);
+    color: var(--text-3);
+    cursor: not-allowed;
+  }
+
+  /* Recent topics */
+  .recent-wrap {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease, margin 0.2s ease;
+    margin-top: 0;
+  }
+  .recent-wrap.open {
+    max-height: 80px;
+    opacity: 1;
+    margin-top: 10px;
+  }
+  .recent-label { font-size: 11px; color: var(--text-3); margin-bottom: 7px; }
+  .recent-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .recent-chip {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .recent-chip:hover { background: var(--accent-soft); color: var(--text); border-color: #C8C4BC; }
+
+  /* Action Button */
+  .action-btn {
+    width: 100%;
+    padding: 17px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .action-btn.start { background: var(--text); color: var(--bg); }
+  .action-btn.start:hover { opacity: 0.88; transform: translateY(-1px); }
+  .action-btn.start:active { transform: translateY(0); }
+  .action-btn.stop { background: var(--red-soft); color: var(--red); border: 1px solid #F5C6C2; }
+  .action-btn.stop:hover { background: #FADADD; }
+  .action-btn:disabled { background: var(--surface2); color: var(--text-3); cursor: not-allowed; transform: none; }
+
+  /* Live dot */
+  .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; animation: blink 1.4s ease-in-out infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* Today */
+  .summary-banner {
+    background: var(--text);
+    color: var(--bg);
+    border-radius: var(--radius);
+    padding: 24px 24px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .summary-banner-label { font-size: 12px; font-weight: 300; opacity: 0.55; margin-bottom: 4px; }
+  .summary-banner-value { font-family: 'DM Mono', monospace; font-size: 40px; font-weight: 400; letter-spacing: -1px; }
+  .summary-banner-right { text-align: right; }
+  .summary-banner-sessions { font-size: 12px; opacity: 0.45; }
+
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; margin-top: 20px; }
+
+  .topic-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .topic-row-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .topic-row-dur { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text-2); }
+
+  .session-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    gap: 12px;
+  }
+  .session-row-info { flex: 1; }
+  .session-row-topic { font-size: 13px; font-weight: 500; }
+  .session-row-time { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .session-row-dur { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-2); }
+
+  /* History */
+  .history-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .history-day { font-size: 13px; font-weight: 500; min-width: 80px; }
+  .history-day.today { color: var(--green); }
+  .bar-track { flex: 1; height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--text); border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+  .history-dur { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-2); min-width: 48px; text-align: right; }
+
+  .empty-msg { text-align: center; padding: 36px 0; font-size: 14px; color: var(--text-3); font-weight: 300; }
+
+  /* Dot accent on topic rows */
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--border); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-title">Easy Timer</div>
+    <div class="header-date" id="header-date"></div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="goTo('timer', this)">Timer</button>
+    <button class="nav-btn" onclick="goTo('today', this)">Today</button>
+    <button class="nav-btn" onclick="goTo('history', this)">History</button>
+  </nav>
+
+  <!-- TIMER SCREEN -->
+  <div id="screen-timer" class="screen active">
+
+    <div class="timer-card">
+      <div class="timer-status" id="t-status">what are you working on?</div>
+      <div class="timer-digits" id="t-digits">00:00</div>
+      <div class="timer-topic" id="t-topic"></div>
+    </div>
+
+    <div class="input-area">
+      <div class="topic-input-wrap">
+        <input
+          class="topic-input"
+          id="topic-input"
+          type="text"
+          placeholder="Topic / subject…"
+          oninput="onTopicInput()"
+          onkeydown="onTopicKey(event)"
+          autocomplete="off"
+          maxlength="60"
+        >
+      </div>
+      <div class="recent-wrap" id="recent-wrap">
+        <div class="recent-label">Recent</div>
+        <div class="recent-chips" id="recent-chips"></div>
+      </div>
+    </div>
+
+    <button class="action-btn start" id="main-btn" onclick="toggle()" disabled>Start</button>
+  </div>
+
+  <!-- TODAY SCREEN -->
+  <div id="screen-today" class="screen">
+    <div class="summary-banner">
+      <div>
+        <div class="summary-banner-label">Total today</div>
+        <div class="summary-banner-value" id="today-total">0m</div>
+      </div>
+      <div class="summary-banner-right">
+        <div class="summary-banner-sessions" id="today-count">0 sessions</div>
+      </div>
+    </div>
+    <div class="section-label">By topic</div>
+    <div id="today-topics"></div>
+    <div class="section-label">Sessions</div>
+    <div id="today-sessions"></div>
+  </div>
+
+  <!-- HISTORY SCREEN -->
+  <div id="screen-history" class="screen">
+    <div class="section-label">Last 7 days</div>
+    <div id="history-rows"></div>
+  </div>
+
+</div>
+
+<script>
+  var sessions = JSON.parse(localStorage.getItem('et4_sessions') || '[]');
+  var running = false;
+  var currentTopic = '';
+  var startEpoch = null;
+  var elapsed = 0;
+  var ticker = null;
+
+  // Seed palette for topic colors — deterministic per topic name
+  var PALETTE = ['#1A5276','#2E7D52','#7D5A0A','#C0392B','#5B3A8E','#0E6655','#784212','#17202A'];
+  function topicColor(topic) {
+    var h = 0;
+    for (var i = 0; i < topic.length; i++) h = (h * 31 + topic.charCodeAt(i)) & 0xffffffff;
+    return PALETTE[Math.abs(h) % PALETTE.length];
+  }
+
+  // Init
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  showRecent();
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function fmtClock(s) {
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return h > 0 ? pad(h)+':'+pad(m)+':'+pad(sec) : pad(m)+':'+pad(sec);
+  }
+
+  function fmtDur(s) {
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    if (h > 0) return h + 'h ' + m + 'm';
+    if (m > 0) return m + 'm';
+    return s + 's';
+  }
+
+  function todayKey() { return new Date().toISOString().slice(0, 10); }
+  function save() { localStorage.setItem('et4_sessions', JSON.stringify(sessions)); }
+
+  function getRecentTopics() {
+    var seen = [], result = [];
+    for (var i = sessions.length - 1; i >= 0; i--) {
+      var t = sessions[i].topic;
+      if (seen.indexOf(t) === -1) { seen.push(t); result.push(t); }
+      if (result.length >= 6) break;
+    }
+    return result;
+  }
+
+  function showRecent() {
+    var recent = getRecentTopics();
+    var wrap = document.getElementById('recent-wrap');
+    var cc = document.getElementById('recent-chips');
+    cc.innerHTML = '';
+    if (recent.length === 0) { wrap.classList.remove('open'); return; }
+    recent.forEach(function(t) {
+      var b = document.createElement('button');
+      b.className = 'recent-chip';
+      b.textContent = t;
+      b.onclick = function() { useRecent(t); };
+      cc.appendChild(b);
+    });
+    wrap.classList.add('open');
+  }
+
+  function useRecent(topic) {
+    document.getElementById('topic-input').value = topic;
+    currentTopic = topic;
+    document.getElementById('t-topic').textContent = topic;
+    document.getElementById('t-topic').classList.add('active');
+    document.getElementById('t-status').textContent = 'ready to start';
+    document.getElementById('main-btn').disabled = false;
+  }
+
+  function onTopicInput() {
+    var val = document.getElementById('topic-input').value.trim();
+    currentTopic = val;
+    var topicEl = document.getElementById('t-topic');
+    topicEl.textContent = val;
+    topicEl.classList.toggle('active', val.length > 0);
+    document.getElementById('t-status').textContent = val.length > 0 ? 'ready to start' : 'what are you working on?';
+    document.getElementById('main-btn').disabled = val.length === 0;
+  }
+
+  function onTopicKey(e) {
+    if (e.key === 'Enter' && currentTopic.length > 0 && !running) toggle();
+  }
+
+  function goTo(name, btn) {
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById('screen-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'today') renderToday();
+    if (name === 'history') renderHistory();
+  }
+
+  function toggle() { running ? stop() : start(); }
+
+  function start() {
+    running = true;
+    startEpoch = Date.now() - elapsed * 1000;
+    ticker = setInterval(tick, 500);
+
+    var btn = document.getElementById('main-btn');
+    btn.textContent = 'Stop';
+    btn.className = 'action-btn stop';
+
+    var status = document.getElementById('t-status');
+    status.innerHTML = '<span class="live-dot"></span>' + currentTopic;
+    status.classList.add('running');
+
+    document.getElementById('topic-input').disabled = true;
+    document.getElementById('recent-wrap').classList.remove('open');
+  }
+
+  function stop() {
+    clearInterval(ticker);
+    running = false;
+
+    if (elapsed >= 5) {
+      sessions.push({ topic: currentTopic, duration: elapsed, date: todayKey(), ts: Date.now() });
+      save();
+    }
+
+    elapsed = 0;
+    document.getElementById('t-digits').textContent = '00:00';
+    document.getElementById('t-status').classList.remove('running');
+    document.getElementById('t-status').textContent = currentTopic.length > 0 ? 'ready to start' : 'what are you working on?';
+
+    var btn = document.getElementById('main-btn');
+    btn.textContent = 'Start';
+    btn.className = 'action-btn start';
+
+    document.getElementById('topic-input').disabled = false;
+    document.getElementById('topic-input').value = '';
+    document.getElementById('topic-input').focus();
+    currentTopic = '';
+    document.getElementById('t-topic').textContent = '';
+    document.getElementById('t-topic').classList.remove('active');
+    document.getElementById('main-btn').disabled = true;
+    document.getElementById('t-status').textContent = 'what are you working on?';
+
+    showRecent();
+  }
+
+  function tick() {
+    elapsed = Math.floor((Date.now() - startEpoch) / 1000);
+    document.getElementById('t-digits').textContent = fmtClock(elapsed);
+  }
+
+  function renderToday() {
+    var today = todayKey();
+    var ts = sessions.filter(function(s) { return s.date === today; });
+    var total = ts.reduce(function(a, s) { return a + s.duration; }, 0);
+
+    document.getElementById('today-total').textContent = total > 0 ? fmtDur(total) : '0m';
+    document.getElementById('today-count').textContent = ts.length + ' session' + (ts.length !== 1 ? 's' : '');
+
+    // by topic
+    var byTopic = {};
+    ts.forEach(function(s) { byTopic[s.topic] = (byTopic[s.topic] || 0) + s.duration; });
+    var tEl = document.getElementById('today-topics');
+    tEl.innerHTML = '';
+    var keys = Object.keys(byTopic).sort(function(a, b) { return byTopic[b] - byTopic[a]; });
+    if (keys.length === 0) {
+      tEl.innerHTML = '<div class="empty-msg">No sessions tracked today</div>';
+    } else {
+      keys.forEach(function(topic) {
+        var row = document.createElement('div');
+        row.className = 'topic-row';
+        row.innerHTML =
+          '<div class="dot" style="background:' + topicColor(topic) + '"></div>' +
+          '<div class="topic-row-name">' + topic + '</div>' +
+          '<div class="topic-row-dur">' + fmtDur(byTopic[topic]) + '</div>';
+        tEl.appendChild(row);
+      });
+    }
+
+    // sessions
+    var sEl = document.getElementById('today-sessions');
+    sEl.innerHTML = '';
+    if (ts.length === 0) {
+      sEl.innerHTML = '<div class="empty-msg">Start a timer to see your sessions here</div>';
+    } else {
+      ts.slice().reverse().forEach(function(s) {
+        var t = new Date(s.ts);
+        var timeStr = t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        var row = document.createElement('div');
+        row.className = 'session-row';
+        row.innerHTML =
+          '<div class="dot" style="background:' + topicColor(s.topic) + '"></div>' +
+          '<div class="session-row-info">' +
+            '<div class="session-row-topic">' + s.topic + '</div>' +
+            '<div class="session-row-time">' + timeStr + '</div>' +
+          '</div>' +
+          '<div class="session-row-dur">' + fmtDur(s.duration) + '</div>';
+        sEl.appendChild(row);
+      });
+    }
+  }
+
+  function renderHistory() {
+    var days = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(); d.setDate(d.getDate() - i); days.push(d);
+    }
+    var totals = days.map(function(d) {
+      var key = d.toISOString().slice(0, 10);
+      return sessions.filter(function(s) { return s.date === key; })
+        .reduce(function(a, s) { return a + s.duration; }, 0);
+    });
+    var max = Math.max.apply(null, totals.concat([1]));
+    var hEl = document.getElementById('history-rows');
+    hEl.innerHTML = '';
+    var today = todayKey();
+    days.slice().reverse().forEach(function(d, i) {
+      var key = d.toISOString().slice(0, 10);
+      var isToday = key === today;
+      var dur = totals[6 - i];
+      var pct = Math.round((dur / max) * 100);
+      var label = isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      var row = document.createElement('div');
+      row.className = 'history-row';
+      row.innerHTML =
+        '<div class="history-day' + (isToday ? ' today' : '') + '">' + label + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + (dur > 0 ? pct : 0) + '%"></div></div>' +
+        '<div class="history-dur">' + (dur > 0 ? fmtDur(dur) : '—') + '</div>';
+      hEl.appendChild(row);
+    });
+  }
+</script>
+</body>
+</html>
